@@ -353,6 +353,159 @@ static void _detectInitialCandidates(const Mat &grey, vector< vector< Point2f > 
     }
 }
 
+static void _interpolate2Dline(const std::vector< Point2f > &inPoints, Point3f &outLine) {
+
+	float minX, maxX, minY, maxY;
+	minX = maxX = inPoints[0].x;
+	minY = maxY = inPoints[0].y;
+	for (unsigned int i = 1; i < inPoints.size(); i++) {
+		if (inPoints[i].x < minX)
+			minX = inPoints[i].x;
+		if (inPoints[i].x > maxX)
+			maxX = inPoints[i].x;
+		if (inPoints[i].y < minY)
+			minY = inPoints[i].y;
+		if (inPoints[i].y > maxY)
+			maxY = inPoints[i].y;
+	}
+
+	// create matrices of equation system
+	Mat A(inPoints.size(), 2, CV_32FC1, Scalar(0));
+	Mat B(inPoints.size(), 1, CV_32FC1, Scalar(0));
+	Mat X;
+	
+	if (maxX - minX > maxY - minY) {
+		// Ax + C = y
+		for (int i = 0; i < inPoints.size(); i++) {
+
+			A.at< float >(i, 0) = inPoints[i].x;
+			A.at< float >(i, 1) = 1.;
+			B.at< float >(i, 0) = inPoints[i].y;
+		}
+
+		// solve system
+		solve(A, B, X, DECOMP_SVD);
+		// return Ax + By + C
+		outLine = Point3f(X.at< float >(0, 0), -1., X.at< float >(1, 0));
+	}
+	else {
+		// By + C = x
+		for (int i = 0; i < inPoints.size(); i++) {
+
+			A.at< float >(i, 0) = inPoints[i].y;
+			A.at< float >(i, 1) = 1.;
+			B.at< float >(i, 0) = inPoints[i].x;
+		}
+
+		// solve system
+		solve(A, B, X, DECOMP_SVD);
+		// return Ax + By + C
+		outLine = Point3f(-1., X.at< float >(0, 0), X.at< float >(1, 0));
+	}
+}
+
+static Point2f _getCrossPoint(const cv::Point3f &line1, const cv::Point3f &line2) {
+
+	// create matrices of equation system
+	Mat A(2, 2, CV_32FC1, Scalar(0));
+	Mat B(2, 1, CV_32FC1, Scalar(0));
+	Mat X;
+
+	A.at< float >(0, 0) = line1.x;
+	A.at< float >(0, 1) = line1.y;
+	B.at< float >(0, 0) = -line1.z;
+
+	A.at< float >(1, 0) = line2.x;
+	A.at< float >(1, 1) = line2.y;
+	B.at< float >(1, 0) = -line2.z;
+
+	// solve system
+	solve(A, B, X, DECOMP_SVD);
+	return Point2f(X.at< float >(0, 0), X.at< float >(1, 0));
+}
+
+static void _distortPoints(vector< cv::Point2f > in, vector< cv::Point2f > &out, const Mat &camMatrix, const Mat &distCoeff) {
+	// trivial extrinsics
+	cv::Mat Rvec = cv::Mat(3, 1, CV_32FC1, cv::Scalar::all(0));
+	cv::Mat Tvec = Rvec.clone();
+	// calculate 3d points and then reproject, so opencv makes the distortion internally
+	vector< cv::Point3f > cornersPoints3d;
+	for (unsigned int i = 0; i < in.size(); i++)
+		cornersPoints3d.push_back(cv::Point3f((in[i].x - camMatrix.at< float >(0, 2)) / camMatrix.at< float >(0, 0), // x
+			(in[i].y - camMatrix.at< float >(1, 2)) / camMatrix.at< float >(1, 1), // y
+			1)); // z
+	cv::projectPoints(cornersPoints3d, Rvec, Tvec, camMatrix, distCoeff, out);
+}
+
+static void _refineCandidateLines(std::vector<Point2f> &candidate, std::vector<Point> &contour) {//, const cv::Mat &camMatrix, const cv::Mat &distCoeff) {
+	// search corners on the contour vector
+	vector< unsigned int > cornerIndex;
+	cornerIndex.resize(4);
+	for (unsigned int j = 0; j < contour.size(); j++) {
+		for (unsigned int k = 0; k < 4; k++) {
+			if (contour[j].x == candidate[k].x && contour[j].y == candidate[k].y) {
+				cornerIndex[k] = j;
+			}
+		}
+	}
+
+	// contour pixel in inverse order or not?
+	bool inverse;
+	if ((cornerIndex[1] > cornerIndex[0]) && (cornerIndex[2] > cornerIndex[1] || cornerIndex[2] < cornerIndex[0]))
+		inverse = false;
+	else if (cornerIndex[2] > cornerIndex[1] && cornerIndex[2] < cornerIndex[0])
+		inverse = false;
+	else
+		inverse = true;
+
+
+	// get pixel vector for each line of the marker
+	int inc = 1;
+	if (inverse)
+		inc = -1;
+
+	// undistort contour
+	vector< Point2f > contour2f;
+	for (unsigned int i = 0; i < contour.size(); i++)
+		contour2f.push_back(cv::Point2f(contour[i].x, contour[i].y));
+	//if (!camMatrix.empty() && !distCoeff.empty())
+	//	cv::undistortPoints(contour2f, contour2f, camMatrix, distCoeff, cv::Mat(), camMatrix);
+
+
+	vector< std::vector< cv::Point2f > > contourLines;
+	contourLines.resize(4);
+	for (unsigned int l = 0; l < 4; l++) {
+		for (int j = (int)cornerIndex[l]; j != (int)cornerIndex[(l + 1) % 4]; j += inc) {
+			if (j == (int)contour.size() && !inverse)
+				j = 0;
+			else if (j == 0 && inverse)
+				j = contour.size() - 1;
+			contourLines[l].push_back(contour2f[j]);
+			if (j == (int)cornerIndex[(l + 1) % 4])
+				break; // this has to be added because of the previous ifs
+		}
+	}
+
+	// interpolate marker lines
+	vector< Point3f > lines;
+	lines.resize(4);
+	for (unsigned int j = 0; j < lines.size(); j++)
+		_interpolate2Dline(contourLines[j], lines[j]);
+
+	// get cross points of lines
+	vector< Point2f > crossPoints;
+	crossPoints.resize(4);
+	for (unsigned int i = 0; i < 4; i++)
+		crossPoints[i] = _getCrossPoint(lines[(i - 1) % 4], lines[i]);
+
+	// distort corners again if undistortion was performed
+	//if (!camMatrix.empty() && !distCoeff.empty())
+	//	_distortPoints(crossPoints, crossPoints, camMatrix, distCoeff);
+
+	// reassing points
+	for (unsigned int j = 0; j < 4; j++)
+		candidate[j] = crossPoints[j];
+}
 
 /**
  * @brief Detect square candidates in the input image
@@ -371,6 +524,10 @@ static void _detectCandidates(InputArray _image, OutputArrayOfArrays _candidates
     vector< vector< Point > > contours;
     /// 2. DETECT FIRST SET OF CANDIDATES
     _detectInitialCandidates(grey, candidates, contours, _params);
+
+	for (int i = 0; i < candidates.size(); ++i) {
+		_refineCandidateLines(candidates[i], contours[i]);
+	}
 
     /// 3. SORT CORNERS
     _reorderCandidatesCorners(candidates);
