@@ -46,7 +46,7 @@ For instance:
 
 ``` c++
     cv::Mat diamondImage;
-    cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
+    cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
     cv::aruco::drawCharucoDiamond(dictionary, cv::Vec4i(45,68,28,74), 200, 120, markerImage);
 ```
 
@@ -60,6 +60,10 @@ The image produced will be:
 
 A full working example is included in the ```create_diamond.cpp``` inside the module samples folder.
 
+Note: The samples now take input via commandline via the [OpenCV Commandline Parser](http://docs.opencv.org/trunk/d0/d2e/classcv_1_1CommandLineParser.html#gsc.tab=0). For this file the example parameters will look like
+``` c++
+    "_path_/mydiamond.png" -sl=200 -ml=120 -d=10 -ids=45,68,28,74
+```
 
 ChArUco Diamond Detection
 ------
@@ -74,14 +78,14 @@ After detecting markers, diamond are detected using the ```detectCharucoDiamond(
     ...
 
 
-    std::vector< int > markerIds;
-    std::vector< std::vector< cv::Point2f > > markerCorners;
+    std::vector<int> markerIds;
+    std::vector<std::vector< cv::Point2f>> markerCorners;
 
     // detect ArUco markers
     cv::aruco::detectMarkers(inputImage, dictionary, markerCorners, markerIds);
 
-    std::vector< cv::Vec4i > diamondIds;
-    std::vector< std::vector< cv::Point2f > > diamondCorners;
+    std::vector<cv::Vec4i> diamondIds;
+    std::vector<std::vector<cv::Point2f>> diamondCorners;
 
     // detect diamon diamonds
     cv::aruco::detectCharucoDiamond(inputImage, markerCorners, markerIds, squareLength / markerLength, diamondCorners, diamondIds);
@@ -103,8 +107,8 @@ corners and ids:
 
 ``` c++
     ...
-    std::vector< cv::Vec4i > diamondIds;
-    std::vector< std::vector< cv::Point2f > > diamondCorners;
+    std::vector<cv::Vec4i> diamondIds;
+    std::vector<std::vector<cv::Point2f>> diamondCorners;
     cv::aruco::detectCharucoDiamond(inputImage, markerCorners, markerIds, squareLength / markerLength, diamondCorners, diamondIds);
 
     cv::aruco::drawDetectedDiamonds(inputImage, diamondCorners, diamondIds);
@@ -116,6 +120,10 @@ The result is the same that the one produced by ```drawDetectedMarkers()```, but
 
 A full working example is included in the ```detect_diamonds.cpp``` inside the module samples folder.
 
+Note: The samples now take input via commandline via the [OpenCV Commandline Parser](http://docs.opencv.org/trunk/d0/d2e/classcv_1_1CommandLineParser.html#gsc.tab=0). For this file the example parameters will look like
+``` c++
+    -c="_path_/calib.txt" -dp="_path_/detector_params.yml" -sl=0.04 -ml=0.02 -d=10
+```
 
 ChArUco Diamond Pose Estimation
 ------
@@ -126,8 +134,8 @@ i.e. using the ```estimatePoseSingleMarkers()``` function. For instance:
 ``` c++
     ...
 
-    std::vector< cv::Vec4i > diamondIds;
-    std::vector< std::vector< cv::Point2f > > diamondCorners;
+    std::vector<cv::Vec4i> diamondIds;
+    std::vector<std::vector<cv::Point2f>> diamondCorners;
 
     // detect diamon diamonds
     cv::aruco::detectCharucoDiamond(inputImage, markerCorners, markerIds, squareLength / markerLength, diamondCorners, diamondIds);
@@ -159,3 +167,8 @@ Sample video:
 @endhtmlonly
 
 A full working example is included in the ```detect_diamonds.cpp``` inside the module samples folder.
+
+Note: The samples now take input via commandline via the [OpenCV Commandline Parser](http://docs.opencv.org/trunk/d0/d2e/classcv_1_1CommandLineParser.html#gsc.tab=0). For this file the example parameters will look like
+``` c++
+    -c="_output path_/calib.txt" -dp="_path_/detector_params.yml" -sl=0.04 -ml=0.02 -d=10
+```

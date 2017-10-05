@@ -54,21 +54,21 @@ void FaceRecognizer::update(InputArrayOfArrays src, InputArray labels)
     CV_Error(Error::StsNotImplemented, error_msg);
 }
 
-void FaceRecognizer::load(const String &filename)
+void FaceRecognizer::read(const String &filename)
 {
     FileStorage fs(filename, FileStorage::READ);
     if (!fs.isOpened())
-        CV_Error(Error::StsError, "File can't be opened for writing!");
-    this->load(fs);
+        CV_Error(Error::StsError, "File can't be opened for reading!");
+    this->read(fs.root());
     fs.release();
 }
 
-void FaceRecognizer::save(const String &filename) const
+void FaceRecognizer::write(const String &filename) const
 {
     FileStorage fs(filename, FileStorage::WRITE);
     if (!fs.isOpened())
         CV_Error(Error::StsError, "File can't be opened for writing!");
-    this->save(fs);
+    this->write(fs);
     fs.release();
 }
 
@@ -80,10 +80,10 @@ int FaceRecognizer::predict(InputArray src) const {
 }
 
 void FaceRecognizer::predict(InputArray src, CV_OUT int &label, CV_OUT double &confidence) const {
-    Ptr<MinDistancePredictCollector> collector = MinDistancePredictCollector::create(getThreshold());
-    predict(src, collector, 0);
-    label = collector->getLabel();
-    confidence = collector->getDist();
+    Ptr<StandardCollector> collector = StandardCollector::create(getThreshold());
+    predict(src, collector);
+    label = collector->getMinLabel();
+    confidence = collector->getMinDist();
 }
 
 }

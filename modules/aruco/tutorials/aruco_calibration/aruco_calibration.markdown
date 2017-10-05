@@ -33,18 +33,18 @@ visible in all the viewpoints.
 The function to calibrate is ```calibrateCameraCharuco()```. Example:
 
 ``` c++
-    aruco::CharucoBoard board = ... // create charuco board
+    cv::Ptr<aruco::CharucoBoard> board = ... // create charuco board
     cv::Size imgSize = ... // camera image size
 
-    std::vector< std::vector<cv::Point2f> > allCharucoCorners;
-    std::vector< std::vector<int> > allCharucoIds;
+    std::vector<std::vector<cv::Point2f>> allCharucoCorners;
+    std::vector<std::vector<int>> allCharucoIds;
     // Detect charuco board from several viewpoints and fill allCharucoCorners and allCharucoIds
     ...
     ...
 
     // After capturing in several viewpoints, start calibration
     cv::Mat cameraMatrix, distCoeffs;
-    std::vector< Mat > rvecs, tvecs;
+    std::vector<cv::Mat> rvecs, tvecs;
     int calibrationFlags = ... // Set calibration flags (same than in calibrateCamera() function)
 
     double repError = cv::aruco::calibrateCameraCharuco(allCharucoCorners, allCharucoIds, board, imgSize, cameraMatrix, distCoeffs, rvecs, tvecs, calibrationFlags);
@@ -61,6 +61,11 @@ Finally, the ```calibrationFlags``` parameter determines some of the options for
 
 A full working example is included in the ```calibrate_camera_charuco.cpp``` inside the module samples folder.
 
+Note: The samples now take input via commandline via the [OpenCV Commandline Parser](http://docs.opencv.org/trunk/d0/d2e/classcv_1_1CommandLineParser.html#gsc.tab=0). For this file the example parameters will look like
+``` c++
+    _output path_" -dp="_path_/detector_params.yml" -w=5 -h=7 -sl=0.04 -ml=0.02 -d=10
+```
+
 
 
 Calibration with ArUco Boards
@@ -76,19 +81,19 @@ requires the detections of an ArUco board from different viewpoints.
 Example of ```calibrateCameraAruco()``` use:
 
 ``` c++
-    aruco::Board board = ... // create aruco board
+    cv::Ptr<aruco::Board> board = ... // create aruco board
     cv::Size imgSize = ... // camera image size
 
-    std::vector< std::vector< cv::Point2f > > allCornersConcatenated;
-    std::vector< int > allIdsConcatenated;
-    std::vector< int > markerCounterPerFrame;
+    std::vector<std::vector<cv::Point2f>> allCornersConcatenated;
+    std::vector<int> allIdsConcatenated;
+    std::vector<int> markerCounterPerFrame;
     // Detect aruco board from several viewpoints and fill allCornersConcatenated, allIdsConcatenated and markerCounterPerFrame
     ...
     ...
 
     // After capturing in several viewpoints, start calibration
     cv::Mat cameraMatrix, distCoeffs;
-    std::vector< Mat > rvecs, tvecs;
+    std::vector<cv::Mat> rvecs, tvecs;
     int calibrationFlags = ... // Set calibration flags (same than in calibrateCamera() function)
 
     double repError = cv::aruco::calibrateCameraAruco(allCornersConcatenated, allIdsConcatenated, markerCounterPerFrame, board, imgSize, cameraMatrix, distCoeffs, rvecs, tvecs, calibrationFlags);
@@ -100,3 +105,8 @@ The rest of parameters are the same than in ```calibrateCameraCharuco()```, exce
 any ```Board``` object.
 
 A full working example is included in the ```calibrate_camera.cpp``` inside the module samples folder.
+
+Note: The samples now take input via commandline via the [OpenCV Commandline Parser](http://docs.opencv.org/trunk/d0/d2e/classcv_1_1CommandLineParser.html#gsc.tab=0). For this file the example parameters will look like
+``` c++
+    "_path_/calib.txt" -w=5 -h=7 -l=100 -s=10 -d=10
+```

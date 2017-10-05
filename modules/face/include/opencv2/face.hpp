@@ -113,7 +113,7 @@ int num_components = 10;
 double threshold = 10.0;
 // Then if you want to have a cv::FaceRecognizer with a confidence threshold,
 // create the concrete implementation with the appropiate parameters:
-Ptr<FaceRecognizer> model = createEigenFaceRecognizer(num_components, threshold);
+Ptr<FaceRecognizer> model = EigenFaceRecognizer::create(num_components, threshold);
 @endcode
 
 Sometimes it's impossible to train the model, just to experiment with threshold values. Thanks to
@@ -148,7 +148,7 @@ FaceRecognizer:
 
 @code
 // Create a FaceRecognizer:
-Ptr<FaceRecognizer> model = createEigenFaceRecognizer();
+Ptr<FaceRecognizer> model = EigenFaceRecognizer::create();
 // And here's how to get its name:
 String name = model->name();
 @endcode
@@ -192,7 +192,7 @@ public:
     // Create a new Fisherfaces model and retain all available Fisherfaces,
     // this is the most common usage of this specific FaceRecognizer:
     //
-    Ptr<FaceRecognizer> model =  createFisherFaceRecognizer();
+    Ptr<FaceRecognizer> model =  FisherFaceRecognizer::create();
     @endcode
 
     And finally train it on the given dataset (the face images and labels):
@@ -223,7 +223,7 @@ public:
     // Create a new LBPH model (it can be updated) and use the default parameters,
     // this is the most common usage of this specific FaceRecognizer:
     //
-    Ptr<FaceRecognizer> model =  createLBPHFaceRecognizer();
+    Ptr<FaceRecognizer> model =  LBPHFaceRecognizer::create();
     // This is the common interface to train all of the available cv::FaceRecognizer
     // implementations:
     //
@@ -241,7 +241,7 @@ public:
     // with the new features extracted from newImages!
     @endcode
 
-    Calling update on an Eigenfaces model (see createEigenFaceRecognizer), which doesn't support
+    Calling update on an Eigenfaces model (see EigenFaceRecognizer::create), which doesn't support
     updating, will throw an error similar to:
 
     @code
@@ -256,7 +256,7 @@ public:
     CV_WRAP virtual void update(InputArrayOfArrays src, InputArray labels);
 
     /** @overload */
-    CV_WRAP int predict(InputArray src) const;
+    CV_WRAP_AS(predict_label) int predict(InputArray src) const;
 
 
     /** @brief Predicts a label and associated confidence (e.g. distance) for a given input image.
@@ -300,12 +300,11 @@ public:
     /** @brief - if implemented - send all result of prediction to collector that can be used for somehow custom result handling
     @param src Sample image to get a prediction from.
     @param collector User-defined collector object that accepts all results
-    @param state - optional user-defined state token that should be passed back from FaceRecognizer implementation
 
     To implement this method u just have to do same internal cycle as in predict(InputArray src, CV_OUT int &label, CV_OUT double &confidence) but
     not try to get "best@ result, just resend it to caller side with given collector
     */
-    CV_WRAP virtual void predict(InputArray src, Ptr<PredictCollector> collector, const int state = 0) const = 0;
+    CV_WRAP_AS(predict_collect) virtual void predict(InputArray src, Ptr<PredictCollector> collector) const = 0;
 
     /** @brief Saves a FaceRecognizer and its model state.
 
@@ -319,7 +318,7 @@ public:
     The suffix const means that prediction does not affect the internal model state, so the method can
     be safely called from within different threads.
      */
-    CV_WRAP virtual void save(const String& filename) const;
+    CV_WRAP virtual void write(const String& filename) const;
 
     /** @brief Loads a FaceRecognizer and its model state.
 
@@ -328,16 +327,19 @@ public:
     FaceRecognizer::load(FileStorage& fs) in turn gets called by
     FaceRecognizer::load(const String& filename), to ease saving a model.
      */
-    CV_WRAP virtual void load(const String& filename);
+    CV_WRAP virtual void read(const String& filename);
 
     /** @overload
     Saves this model to a given FileStorage.
     @param fs The FileStorage to store this FaceRecognizer to.
     */
-    virtual void save(FileStorage& fs) const = 0;
+    virtual void write(FileStorage& fs) const = 0;
 
     /** @overload */
-    virtual void load(const FileStorage& fs) = 0;
+    virtual void read(const FileNode& fn) = 0;
+
+    /** @overload */
+    virtual bool empty() const = 0;
 
     /** @brief Sets string info for the specified model's label.
 
@@ -358,8 +360,10 @@ public:
     info.
      */
     CV_WRAP virtual std::vector<int> getLabelsByString(const String& str) const;
-    /** @brief threshhold parameter accessor - required for default BestMinDist collector */
+    /** @brief threshold parameter accessor - required for default BestMinDist collector */
     virtual double getThreshold() const = 0;
+    /** @brief Sets threshold of model */
+    virtual void setThreshold(double val) = 0;
 protected:
     // Stored pairs "label id - string info"
     std::map<int, String> _labelsInfo;

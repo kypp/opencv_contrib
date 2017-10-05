@@ -61,9 +61,9 @@ namespace aruco {
 class CV_EXPORTS_W Dictionary {
 
     public:
-    CV_PROP_RW Mat bytesList;         // marker code information
-    CV_PROP_RW int markerSize;        // number of bits per dimension
-    CV_PROP_RW int maxCorrectionBits; // maximum number of bits that can be corrected
+    CV_PROP Mat bytesList;         // marker code information
+    CV_PROP int markerSize;        // number of bits per dimension
+    CV_PROP int maxCorrectionBits; // maximum number of bits that can be corrected
 
 
     /**
@@ -91,7 +91,7 @@ class CV_EXPORTS_W Dictionary {
      * @see generateCustomDictionary
      */
     CV_WRAP_AS(create_from) static Ptr<Dictionary> create(int nMarkers, int markerSize,
-            Ptr<Dictionary> &baseDictionary);
+            const Ptr<Dictionary> &baseDictionary);
 
     /**
      * @see getPredefinedDictionary
@@ -114,7 +114,7 @@ class CV_EXPORTS_W Dictionary {
     /**
      * @brief Draw a canonical marker image
      */
-    void drawMarker(int id, int sidePixels, OutputArray _img, int borderBits = 1) const;
+    CV_WRAP void drawMarker(int id, int sidePixels, OutputArray _img, int borderBits = 1) const;
 
 
     /**
@@ -194,7 +194,7 @@ CV_EXPORTS_AS(custom_dictionary) Ptr<Dictionary> generateCustomDictionary(
 CV_EXPORTS_AS(custom_dictionary_from) Ptr<Dictionary> generateCustomDictionary(
         int nMarkers,
         int markerSize,
-        Ptr<Dictionary> &baseDictionary);
+        const Ptr<Dictionary> &baseDictionary);
 
 
 
